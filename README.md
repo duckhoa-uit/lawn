@@ -20,3 +20,4 @@ My team is using lawn every day already. We intend to continue, and we intend to
 - [Deployment](docs/deployment.md)
 - [Philosophy](docs/philosophy.md)
 hermes-amend e2e: initial
+hermes-amend e2e: follow-up via MCP
