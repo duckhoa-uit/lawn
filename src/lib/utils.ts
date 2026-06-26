@@ -55,6 +55,10 @@ export function formatRelativeTime(date: Date | number): string {
   return "Just now";
 }
 
+export function formatPercentage(value: number, fractionDigits = 1): string {
+  return `${(value * 100).toFixed(fractionDigits)}%`;
+}
+
 export function getInitials(name: string): string {
   return name
     .split(" ")
