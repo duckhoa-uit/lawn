@@ -63,3 +63,7 @@ export function getInitials(name: string): string {
     .toUpperCase()
     .substring(0, 2);
 }
+
+export function greetAutumn(): string {
+  return "Hello, Autumn!";
+}
