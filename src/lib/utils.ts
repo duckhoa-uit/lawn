@@ -30,6 +30,16 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
+export function formatBitrate(bps: number): string {
+  if (bps === 0) return "0 bps";
+  const k = 1000;
+  const sizes = ["bps", "kbps", "Mbps", "Gbps", "Tbps"];
+  const i = Math.floor(Math.log(bps) / Math.log(k));
+  const value = bps / Math.pow(k, i);
+  const formatted = i === 0 ? `${Math.round(value)}` : value.toFixed(1);
+  return `${formatted} ${sizes[i]}`;
+}
+
 export function formatRelativeTime(date: Date | number): string {
   const now = new Date();
   const d = typeof date === "number" ? new Date(date) : date;
