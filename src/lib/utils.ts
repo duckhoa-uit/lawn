@@ -55,6 +55,10 @@ export function formatRelativeTime(date: Date | number): string {
   return "Just now";
 }
 
+export function greetSummer(): string {
+  return "Hello, Summer!";
+}
+
 export function getInitials(name: string): string {
   return name
     .split(" ")
