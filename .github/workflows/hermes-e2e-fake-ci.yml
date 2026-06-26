@@ -1,11 +1,11 @@
-# Hermes E2E test harness — emits a deterministic check_run failure on
-# any PR whose branch starts with `hermes/e2e-fail`. Skips all other
-# branches so it does not interfere with real CI.
+# Hermes E2E test harness — fails CI when the PR adds a file named
+# HERMES_E2E_FAIL.flag at the repo root. The agent only adds this file
+# when the Hermes E2E suite explicitly asks for it, so normal PRs see
+# the no-op job.
 #
-# This is intentionally crude: a real CI surfaces an error message that
-# the agent then parses + fixes. For E2E we only care that
-# check_run.completed with conclusion=failure is delivered to the
-# control plane's webhook.
+# Why a marker file (not a branch prefix)? The Hermes runner hardcodes
+# branch names to `hermes/<short-session-id>`; we cannot ask it to use
+# a specific suffix. A marker file in the PR is a clean opt-in.
 
 name: hermes-e2e-fake-ci
 
@@ -14,17 +14,15 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  always-fails-on-hermes-e2e-fail-branches:
+  always-fails-when-marker-present:
     runs-on: ubuntu-latest
-    if: startsWith(github.head_ref, 'hermes/e2e-fail')
     steps:
-      - name: Intentional failure for Hermes E2E
+      - uses: actions/checkout@v4
+      - name: Check for E2E failure marker
         run: |
-          echo "::error::Synthetic failure for Hermes auto-amend E2E (branch=${{ github.head_ref }})."
-          exit 1
-
-  noop-on-other-branches:
-    runs-on: ubuntu-latest
-    if: ${{ !startsWith(github.head_ref, 'hermes/e2e-fail') }}
-    steps:
-      - run: echo "skipped — not a hermes-e2e-fail branch"
+          if [ -f HERMES_E2E_FAIL.flag ]; then
+            echo "::error::Synthetic failure for Hermes auto-amend E2E (HERMES_E2E_FAIL.flag present)."
+            exit 1
+          else
+            echo "no marker file — skipping synthetic failure"
+          fi
