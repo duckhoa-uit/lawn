@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn, formatDuration, formatTimestamp } from "@/lib/utils";
 import { triggerDownload } from "@/lib/download";
+import { copyTextToClipboard } from "@/lib/clipboard";
 
 interface Comment {
   _id: string;
@@ -307,11 +308,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(funct
   const copyTimestamp = useCallback(async () => {
     const timeToCopy = isScrubbing ? scrubTimeRef.current : currentTime;
     const label = formatTimestamp(timeToCopy);
-    try {
-      await navigator.clipboard.writeText(label);
-    } catch {
-      // Clipboard access may fail on some browsers; ignore silently.
-    }
+    await copyTextToClipboard(label);
     setContextMenu(null);
     showControls();
   }, [currentTime, isScrubbing, showControls]);

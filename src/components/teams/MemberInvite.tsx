@@ -23,6 +23,7 @@ import { ChevronDown, Copy, Check, UserPlus, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getInitials } from "@/lib/utils";
+import { copyTextToClipboard } from "@/lib/clipboard";
 
 interface MemberInviteProps {
   teamId: Id<"teams">;
@@ -72,11 +73,13 @@ export function MemberInvite({ teamId, open, onOpenChange }: MemberInviteProps) 
     }
   };
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (inviteLink) {
-      navigator.clipboard.writeText(inviteLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      const copied = await copyTextToClipboard(inviteLink);
+      if (copied) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
     }
   };
 
