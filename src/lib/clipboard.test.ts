@@ -18,19 +18,38 @@ type FakeTextarea = {
   parentNode: { removeChild: (node: FakeTextarea) => void } | null;
 };
 
+type Focusable = {
+  focus: () => void;
+};
+
+type FakeRange = {
+  id: string;
+  cloneRange: () => FakeRange;
+};
+
+type FakeSelection = {
+  rangeCount: number;
+  getRangeAt: (index: number) => FakeRange;
+  removeAllRanges: () => void;
+  addRange: (range: FakeRange) => void;
+};
+
 type FakeDocument = {
   body: { appendChild: (node: FakeTextarea) => void };
   createElement: (tag: string) => FakeTextarea;
   execCommand: (command: string) => boolean;
+  activeElement?: Focusable | null;
 };
 
 const globalRef = globalThis as unknown as {
   navigator?: NavigatorClipboard;
   document?: FakeDocument;
+  window?: { getSelection?: () => FakeSelection | null };
 };
 
 const originalNavigator = globalRef.navigator;
 const originalDocument = globalRef.document;
+const originalWindow = globalRef.window;
 
 function makeFakeTextarea(): FakeTextarea {
   return {
@@ -44,7 +63,10 @@ function makeFakeTextarea(): FakeTextarea {
   };
 }
 
-function makeFakeDocument(execCommand: (command: string) => boolean): FakeDocument {
+function makeFakeDocument(
+  execCommand: (command: string) => boolean,
+  activeElement?: Focusable | null,
+): FakeDocument {
   const textareas: FakeTextarea[] = [];
   return {
     body: {
@@ -60,6 +82,7 @@ function makeFakeDocument(execCommand: (command: string) => boolean): FakeDocume
       return makeFakeTextarea();
     },
     execCommand,
+    activeElement,
   };
 }
 
@@ -73,6 +96,10 @@ function setNavigator(clipboard?: NavigatorClipboard["clipboard"]) {
 
 function setDocument(document?: FakeDocument) {
   globalRef.document = document;
+}
+
+function setWindow(window?: { getSelection?: () => FakeSelection | null }) {
+  globalRef.window = window;
 }
 
 test("copyTextToClipboard uses the modern Clipboard API and returns true on success", async () => {
@@ -96,6 +123,7 @@ test("copyTextToClipboard uses the modern Clipboard API and returns true on succ
   } finally {
     globalRef.navigator = originalNavigator;
     globalRef.document = originalDocument;
+    globalRef.window = originalWindow;
   }
 });
 
@@ -123,6 +151,64 @@ test("copyTextToClipboard falls back to execCommand when the modern API rejects"
   } finally {
     globalRef.navigator = originalNavigator;
     globalRef.document = originalDocument;
+    globalRef.window = originalWindow;
+  }
+});
+
+test("copyTextToClipboard restores focus and selection after fallback copy", async () => {
+  let focusRestored = 0;
+  let execCalled = 0;
+  let removeAllRangesCalled = 0;
+  const restoredRanges: FakeRange[] = [];
+  const initialRange: FakeRange = {
+    id: "initial",
+    cloneRange: () => ({ id: "initial-clone", cloneRange: () => initialRange }),
+  };
+  const selection: FakeSelection = {
+    rangeCount: 1,
+    getRangeAt: (index: number) => {
+      assert.equal(index, 0);
+      return initialRange;
+    },
+    removeAllRanges: () => {
+      removeAllRangesCalled += 1;
+    },
+    addRange: (range: FakeRange) => {
+      restoredRanges.push(range);
+    },
+  };
+
+  setNavigator({
+    writeText: async () => {
+      throw new Error("Clipboard permission denied");
+    },
+  });
+  setDocument(
+    makeFakeDocument(
+      () => {
+        execCalled += 1;
+        return true;
+      },
+      {
+        focus: () => {
+          focusRestored += 1;
+        },
+      },
+    ),
+  );
+  setWindow({ getSelection: () => selection });
+
+  try {
+    const result = await copyTextToClipboard("restore me");
+    assert.equal(result, true);
+    assert.equal(execCalled, 1);
+    assert.equal(removeAllRangesCalled, 1);
+    assert.deepEqual(restoredRanges.map((range) => range.id), ["initial-clone"]);
+    assert.equal(focusRestored, 1);
+  } finally {
+    globalRef.navigator = originalNavigator;
+    globalRef.document = originalDocument;
+    globalRef.window = originalWindow;
   }
 });
 
@@ -150,6 +236,7 @@ test("copyTextToClipboard returns false when every copy path fails", async () =>
   } finally {
     globalRef.navigator = originalNavigator;
     globalRef.document = originalDocument;
+    globalRef.window = originalWindow;
   }
 });
 
@@ -163,5 +250,6 @@ test("copyTextToClipboard returns false and never throws in an SSR / no-DOM envi
   } finally {
     globalRef.navigator = originalNavigator;
     globalRef.document = originalDocument;
+    globalRef.window = originalWindow;
   }
 });

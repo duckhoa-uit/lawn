@@ -29,6 +29,25 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
     return false;
   }
 
+  const activeElement =
+    "activeElement" in document ? (document.activeElement as unknown) : null;
+  const previousActiveElement =
+    activeElement &&
+    typeof (activeElement as { focus?: unknown }).focus === "function"
+      ? (activeElement as { focus: () => void })
+      : null;
+  const selection =
+    typeof globalThis.window !== "undefined" &&
+    typeof globalThis.window.getSelection === "function"
+      ? globalThis.window.getSelection()
+      : null;
+  const selectionRanges: Range[] = [];
+  if (selection) {
+    for (let index = 0; index < selection.rangeCount; index += 1) {
+      selectionRanges.push(selection.getRangeAt(index).cloneRange());
+    }
+  }
+
   const textarea = document.createElement("textarea");
   textarea.value = text;
   // Position off-screen but keep it focusable/selectable so the copy works.
@@ -61,5 +80,12 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
     if (textarea.parentNode) {
       textarea.parentNode.removeChild(textarea);
     }
+    if (selection) {
+      selection.removeAllRanges();
+      for (const range of selectionRanges) {
+        selection.addRange(range);
+      }
+    }
+    previousActiveElement?.focus();
   }
 }
