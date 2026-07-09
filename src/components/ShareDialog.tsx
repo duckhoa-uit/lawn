@@ -86,17 +86,27 @@ export function ShareDialog({ videoId, open, onOpenChange }: ShareDialogProps) {
     }
   };
 
-  const handleCopyLink = (token: string) => {
+  const handleCopyLink = async (token: string) => {
     const url = `${window.location.origin}/share/${token}`;
-    navigator.clipboard.writeText(url);
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch (error) {
+      console.error("Failed to copy share link:", error);
+      return;
+    }
     setCopiedId(token);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleCopyPublicLink = () => {
+  const handleCopyPublicLink = async () => {
     if (!video?.publicId) return;
     const url = `${window.location.origin}/watch/${video.publicId}`;
-    navigator.clipboard.writeText(url);
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch (error) {
+      console.error("Failed to copy public link:", error);
+      return;
+    }
     setCopiedId("public");
     setTimeout(() => setCopiedId(null), 2000);
   };
