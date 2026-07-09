@@ -72,12 +72,16 @@ export function MemberInvite({ teamId, open, onOpenChange }: MemberInviteProps) 
     }
   };
 
-  const handleCopyLink = () => {
-    if (inviteLink) {
-      navigator.clipboard.writeText(inviteLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const handleCopyLink = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+    } catch (error) {
+      console.error("Failed to copy invite link:", error);
+      return;
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleRemoveMember = async (memberId: Id<"teamMembers">) => {
