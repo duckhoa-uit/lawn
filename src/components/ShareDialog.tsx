@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatRelativeTime } from "@/lib/utils";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface ShareDialogProps {
   videoId: Id<"videos">;
@@ -86,19 +87,23 @@ export function ShareDialog({ videoId, open, onOpenChange }: ShareDialogProps) {
     }
   };
 
-  const handleCopyLink = (token: string) => {
+  const handleCopyLink = async (token: string) => {
     const url = `${window.location.origin}/share/${token}`;
-    navigator.clipboard.writeText(url);
-    setCopiedId(token);
-    setTimeout(() => setCopiedId(null), 2000);
+    // Only show the "copied" state after the clipboard write actually
+    // succeeds, so a denied/insecure write can't report a false success.
+    if (await copyToClipboard(url)) {
+      setCopiedId(token);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
-  const handleCopyPublicLink = () => {
+  const handleCopyPublicLink = async () => {
     if (!video?.publicId) return;
     const url = `${window.location.origin}/watch/${video.publicId}`;
-    navigator.clipboard.writeText(url);
-    setCopiedId("public");
-    setTimeout(() => setCopiedId(null), 2000);
+    if (await copyToClipboard(url)) {
+      setCopiedId("public");
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   const handleDeleteLink = async (linkId: Id<"shareLinks">) => {
