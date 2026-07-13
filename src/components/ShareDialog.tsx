@@ -32,6 +32,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatRelativeTime } from "@/lib/utils";
+import {
+  buildPublicWatchUrl,
+  buildShareUrl,
+  copyToClipboard,
+} from "./shareClipboard";
 
 interface ShareDialogProps {
   videoId: Id<"videos">;
@@ -86,17 +91,17 @@ export function ShareDialog({ videoId, open, onOpenChange }: ShareDialogProps) {
     }
   };
 
-  const handleCopyLink = (token: string) => {
-    const url = `${window.location.origin}/share/${token}`;
-    navigator.clipboard.writeText(url);
+  const handleCopyLink = async (token: string) => {
+    const url = buildShareUrl(window.location.origin, token);
+    if (!(await copyToClipboard(url))) return;
     setCopiedId(token);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleCopyPublicLink = () => {
+  const handleCopyPublicLink = async () => {
     if (!video?.publicId) return;
-    const url = `${window.location.origin}/watch/${video.publicId}`;
-    navigator.clipboard.writeText(url);
+    const url = buildPublicWatchUrl(window.location.origin, video.publicId);
+    if (!(await copyToClipboard(url))) return;
     setCopiedId("public");
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -164,7 +169,7 @@ export function ShareDialog({ videoId, open, onOpenChange }: ShareDialogProps) {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={handleCopyPublicLink}
+                  onClick={() => void handleCopyPublicLink()}
                   disabled={video?.visibility !== "public"}
                 >
                   {copiedId === "public" ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
@@ -298,7 +303,7 @@ export function ShareDialog({ videoId, open, onOpenChange }: ShareDialogProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleCopyLink(link.token)}
+                      onClick={() => void handleCopyLink(link.token)}
                     >
                       {copiedId === link.token ? (
                         <Check className="h-4 w-4 text-[#2d5a2d]" />
